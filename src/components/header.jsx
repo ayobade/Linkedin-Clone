@@ -1,13 +1,15 @@
 import styled from "styled-components";
+import { useState } from "react";
 
 const Header = () => {
-  return (
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    return (
     <Container>
       <Content>
         <Logo>
-          <a href="/home">
-            <img src="/images/home-logo.svg" alt="" />
-          </a>
+                <a href="/home">
+                    <img src="/images/home-logo.svg" alt="" />
+                </a>
         </Logo>
         <Search>
           <div>
@@ -55,12 +57,44 @@ const Header = () => {
             </NavList>
 
             <User>
-              <a>
+              <a onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                 <img src="/images/user.svg" alt="User" />
                 <span>Me <img className="drop" src="/images/down-icon.svg" alt="Arrow Down" /></span>
               </a>
-
-            
+              {isDropdownOpen && (
+                <DropdownMenu>
+                  <UserProfile>
+                    <ProfileImg src="/images/user.svg" alt="Profile" />
+                    <UserInfo>
+                      <UserName>Ayobade Makinde</UserName>
+                      <UserTitle>UI/UX Designer</UserTitle>
+                      <ButtonGroup>
+                        <ViewProfileBtn>View Profile</ViewProfileBtn>
+                        <VerifyBtn>Verify</VerifyBtn>
+                      </ButtonGroup>
+                    </UserInfo>
+                  </UserProfile>
+                  
+                  <Section>
+                    <SectionTitle>Account</SectionTitle>
+                    <MenuItem>
+                      <MenuItemIcon>🔶</MenuItemIcon>
+                      Try Premium for USD 0
+                    </MenuItem>
+                    <MenuItem>Settings & Privacy</MenuItem>
+                    <MenuItem>Help</MenuItem>
+                    <MenuItem>Language</MenuItem>
+                  </Section>
+                  
+                  <Section>
+                    <SectionTitle>Manage</SectionTitle>
+                    <MenuItem>Posts & Activity</MenuItem>
+                    <MenuItem>Job Posting Account</MenuItem>
+                  </Section>
+                  
+                  <SignOut>Sign Out</SignOut>
+                </DropdownMenu>
+              )}
             </User>
 
             <Work>
@@ -78,28 +112,28 @@ const Header = () => {
 };
 
 const Container = styled.div`
-  background-color: #ffffff;
+background-color: #ffffff;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  left: 0;
-  padding: 0 24px;
-  position: fixed;
-  top: 0;
-  width: 100%;
-  z-index: 100;
-  height: 52px;
+left: 0;
+padding: 0 24px;
+position: fixed;
+top: 0;
+width: 100%;
+z-index: 100;
+  height: 60px;
 `;
 
 const Content = styled.div`
-  display: flex;
+display: flex;
   align-items: center;
-  margin: 0 auto;
-  min-height: 100%;
-  max-width: 1128px;
+margin: 0 auto;
+min-height: 100%;
+max-width: 1128px;
 `;
 
 const Logo = styled.span`
-  margin-right: auto;
-  font-size: 0px;
+  margin-right: 16px;
+    font-size: 0px;
 `;
 
 const Search = styled.div`
@@ -194,7 +228,7 @@ a {
    font-weight: 400;
    justify-content: center;
    line-height: 1.5;
-   min-height: 42px;
+   min-height: 48px;
    min-width: 80px;
    position: relative;
    text-decoration: none;
@@ -211,7 +245,7 @@ a {
        bottom: -8px;
        left: 50%;
        transform: translateX(-50%) scaleX(0);
-       width: 100%;
+       width: 150%;
        height: 2px;
        background-color: rgba(0,0,0,0.9);
        transition: transform 0.2s ease-in-out;
@@ -265,13 +299,123 @@ a span::after{
 }
 `;
  
- const Work = styled(User)`
- border-left: 1px solid rgba(0,0,0,0.08);
- 
- @media (max-width: 768px) {
+const Work = styled(User)`
+border-left: 1px solid rgba(0,0,0,0.08);
+
+@media (max-width: 768px) {
   display: none;
- }
+}
 `;
 
+const DropdownMenu = styled.div`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 280px;
+  z-index: 1000;
+  margin-top: 8px;
+`;
+
+const UserProfile = styled.div`
+  display: flex;
+  padding: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+const ProfileImg = styled.img`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 12px;
+`;
+
+const UserInfo = styled.div`
+  flex: 1;
+`;
+
+const UserName = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.9);
+  margin-bottom: 2px;
+`;
+
+const UserTitle = styled.div`
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 8px;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ViewProfileBtn = styled.button`
+  background: white;
+  border: 1px solid #0a66c2;
+  color: #0a66c2;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+`;
+
+const VerifyBtn = styled.button`
+  background: #0a66c2;
+  border: none;
+  color: white;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+`;
+
+const Section = styled.div`
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+const SectionTitle = styled.div`
+  font-weight: 600;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.9);
+  padding: 8px 16px 4px;
+`;
+
+const MenuItem = styled.div`
+  padding: 8px 16px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+`;
+
+const MenuItemIcon = styled.span`
+  margin-right: 8px;
+  font-size: 12px;
+`;
+
+const SignOut = styled.div`
+  padding: 8px 16px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+`;
 
 export default Header;

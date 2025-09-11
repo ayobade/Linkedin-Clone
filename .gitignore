@@ -33,5 +33,4 @@ pnpm-debug.log*
 vite.config.ts.timestamp-*
 .vite/
 
-# Firebase config (requested)
-src/firebase.jsx
+

@@ -1,10 +1,8 @@
-// firebase.jsx
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 import "firebase/compat/firestore";
 import "firebase/compat/storage";
 
-// Firebase config from environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -15,9 +13,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
 if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || !firebaseConfig.storageBucket || !firebaseConfig.appId) {
-  // Surface a clear error to help diagnose invalid-api-key issues
   const missing = Object.entries(firebaseConfig)
     .filter(([k, v]) => !v && ["apiKey","authDomain","projectId","storageBucket","appId"].includes(k))
     .map(([k]) => k)
@@ -28,7 +24,6 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.proj
 
 const firebaseApp = firebase.initializeApp(firebaseConfig);
 
-// Services
 const db = firebaseApp.firestore();
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();

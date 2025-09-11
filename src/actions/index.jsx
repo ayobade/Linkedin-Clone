@@ -217,20 +217,51 @@ export function toggleCommentLikeAPI(postId, commentId, user) {
   return async () => {
     try {
       if (!postId || !commentId || !user || !user.uid) return;
+      
+     
       const commentRef = db.collection("posts").doc(postId).collection("comments").doc(commentId);
-      await db.runTransaction(async (tx) => {
-        const snap = await tx.get(commentRef);
-        if (!snap.exists) return;
-        const data = snap.data() || {};
-        const likedBy = Array.isArray(data.likedBy) ? data.likedBy : [];
-        const hasLiked = likedBy.includes(user.uid);
-        tx.update(commentRef, {
-          likedBy: hasLiked
-            ? firebase.firestore.FieldValue.arrayRemove(user.uid)
-            : firebase.firestore.FieldValue.arrayUnion(user.uid),
-          likesCount: firebase.firestore.FieldValue.increment(hasLiked ? -1 : 1),
+      const commentSnap = await commentRef.get();
+      
+      if (commentSnap.exists) {
+      
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(commentRef);
+          if (!snap.exists) return;
+          const data = snap.data() || {};
+          const likedBy = Array.isArray(data.likedBy) ? data.likedBy : [];
+          const hasLiked = likedBy.includes(user.uid);
+          tx.update(commentRef, {
+            likedBy: hasLiked
+              ? firebase.firestore.FieldValue.arrayRemove(user.uid)
+              : firebase.firestore.FieldValue.arrayUnion(user.uid),
+            likesCount: firebase.firestore.FieldValue.increment(hasLiked ? -1 : 1),
+          });
         });
-      });
+      } else {
+        const commentsSnap = await db.collection("posts").doc(postId).collection("comments").get();
+        
+        for (const commentDoc of commentsSnap.docs) {
+          const replyRef = commentDoc.ref.collection("replies").doc(commentId);
+          const replySnap = await replyRef.get();
+          
+          if (replySnap.exists) {
+            await db.runTransaction(async (tx) => {
+              const snap = await tx.get(replyRef);
+              if (!snap.exists) return;
+              const data = snap.data() || {};
+              const likedBy = Array.isArray(data.likedBy) ? data.likedBy : [];
+              const hasLiked = likedBy.includes(user.uid);
+              tx.update(replyRef, {
+                likedBy: hasLiked
+                  ? firebase.firestore.FieldValue.arrayRemove(user.uid)
+                  : firebase.firestore.FieldValue.arrayUnion(user.uid),
+                likesCount: firebase.firestore.FieldValue.increment(hasLiked ? -1 : 1),
+              });
+            });
+            break;
+          }
+        }
+      }
     } catch (err) {
       console.error(err);
     }

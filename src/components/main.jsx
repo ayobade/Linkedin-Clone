@@ -24,7 +24,6 @@ const Main = (props) => {
             const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
             setCommentsById((prev) => ({ ...prev, [postId]: items }));
             
-            // Load replies for each comment
             for (const comment of items) {
                 const repliesSnap = await db.collection("posts").doc(postId).collection("comments").doc(comment.id).collection("replies").orderBy("timestamp", "asc").get();
                 const replies = repliesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -399,6 +398,9 @@ const Main = (props) => {
                                             </CommentBubble>
                                         </CommentItem>
                                     ))}
+                                    <HideCommentsRow>
+                                        <HideCommentsBtn onClick={() => setOpenCommentId(null)}>Hide comments</HideCommentsBtn>
+                                    </HideCommentsRow>
                                 </CommentsList>
                             )}
                         </CommentArea>
@@ -1271,6 +1273,25 @@ const NestedReplyPostBtn = styled.button`
         background: #ccc;
         cursor: not-allowed;
     }
+`;
+
+const HideCommentsRow = styled.div`
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+`;
+
+const HideCommentsBtn = styled.button`
+    background: none;
+    border: none;
+    color: #0a66c2;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    
+    &:hover { background: rgba(10,102,194,0.08); }
 `;
 
 const CommentActionsRow = styled.div`

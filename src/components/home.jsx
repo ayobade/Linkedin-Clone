@@ -9,7 +9,6 @@ import {Navigate} from "react-router-dom";
 const Home = (props) => {
     return (
         <Container>
-            {/* {!props.user && <Navigate to="/" />} */}
             <Header />
             <Layout>
                 <Leftside />
@@ -33,7 +32,6 @@ const Layout = styled.div`
   min-height: calc(100vh - 60px);
   column-gap: 24px;
   row-gap: 24px;
-  /* grid-template-rows: auto; */
   margin: 24px auto;
   max-width: 1128px;
   padding-left: 24px;
@@ -46,14 +44,5 @@ const Layout = styled.div`
   }
 `;
 
-// const mapStateToProps = (state) => {
-//   return {
-//     user: state.userState.user,
-//   };
-// };
-
-
-
-// export default connect(mapStateToProps)(Home);
 
 export default Home;

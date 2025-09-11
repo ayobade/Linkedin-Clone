@@ -3,12 +3,12 @@ import { useState, useRef } from "react";
 import { connect } from "react-redux";
 import { postArticleAPI } from "../actions";
 
-const PostModal = ({ isOpen, onClose, user, postArticle }) => {
+const PostModal = ({ isOpen, onClose, user, postArticle, loading }) => {
     const [postContent, setPostContent] = useState("");
     const [images, setImages] = useState([]);
     const fileInputRef = useRef(null);
 
-    const handleOpenFilePicker = () => fileInputRef.current && fileInputRef.current.click();
+    const handleOpenFilePicker = () => !loading && fileInputRef.current && fileInputRef.current.click();
 
     const handleFilesSelected = (e) => {
         const files = Array.from(e.target.files || []);
@@ -19,6 +19,7 @@ const PostModal = ({ isOpen, onClose, user, postArticle }) => {
     };
 
     const handleRemoveImage = (idx) => {
+        if (loading) return;
         setImages((prev) => {
             const copy = [...prev];
             const [removed] = copy.splice(idx, 1);
@@ -29,6 +30,7 @@ const PostModal = ({ isOpen, onClose, user, postArticle }) => {
 
     const handlePost = async (e) => {
         e.preventDefault();
+        if (loading) return;
         const files = images.map((i) => i.file).filter(Boolean);
         await postArticle({
             files,
@@ -48,8 +50,13 @@ const PostModal = ({ isOpen, onClose, user, postArticle }) => {
     return (
         <Overlay onClick={onClose}>
             <Modal onClick={(e) => e.stopPropagation()}>
+                {loading && (
+                    <SpinnerOverlay>
+                        <Spinner />
+                    </SpinnerOverlay>
+                )}
                 <ModalHeader>
-                    <CloseBtn onClick={onClose}>×</CloseBtn>
+                    <CloseBtn onClick={onClose} disabled={loading}>×</CloseBtn>
                 </ModalHeader>
                 
                 <UserSection>
@@ -72,8 +79,9 @@ const PostModal = ({ isOpen, onClose, user, postArticle }) => {
                         placeholder="What do you want to talk about?"
                         value={postContent}
                         onChange={(e) => setPostContent(e.target.value)}
+                        disabled={loading}
                     />
-                    <EmojiBtn>😊</EmojiBtn>
+                    <EmojiBtn disabled={loading}>😊</EmojiBtn>
                 </PostInputArea>
 
                 {images.length > 0 && (
@@ -81,7 +89,7 @@ const PostModal = ({ isOpen, onClose, user, postArticle }) => {
                         {images.map((img, idx) => (
                             <Thumb key={img.url}>
                                 <ThumbImg src={img.url} alt={`upload-${idx}`} />
-                                <RemoveThumb onClick={() => handleRemoveImage(idx)}>×</RemoveThumb>
+                                <RemoveThumb onClick={() => handleRemoveImage(idx)} disabled={loading}>×</RemoveThumb>
                             </Thumb>
                         ))}
                     </Gallery>
@@ -89,11 +97,11 @@ const PostModal = ({ isOpen, onClose, user, postArticle }) => {
 
                 <ActionBar>
                     <LeftActions>
-                        <RewriteBtn>
+                        <RewriteBtn disabled={loading}>
                             ✨ Rewrite with AI
                         </RewriteBtn>
                         <MediaIcons>
-                            <MediaIcon onClick={handleOpenFilePicker}>📷</MediaIcon>
+                            <MediaIcon onClick={handleOpenFilePicker} disabled={loading}>📷</MediaIcon>
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -102,16 +110,16 @@ const PostModal = ({ isOpen, onClose, user, postArticle }) => {
                                 onChange={handleFilesSelected}
                                 style={{ display: "none" }}
                             />
-                            <MediaIcon $hideOnMobile>📅</MediaIcon>
-                            <MediaIcon $hideOnMobile>⚙️</MediaIcon>
+                            <MediaIcon $hideOnMobile disabled={loading}>📅</MediaIcon>
+                            <MediaIcon $hideOnMobile disabled={loading}>⚙️</MediaIcon>
                             
                         </MediaIcons>
                     </LeftActions>
                     
                     <RightActions>
-                        <ScheduleIcon>🕐</ScheduleIcon>
-                        <PostBtn disabled={!postContent.trim() && images.length === 0} onClick={handlePost}>
-                            Post
+                        <ScheduleIcon disabled={loading}>🕐</ScheduleIcon>
+                        <PostBtn disabled={loading || (!postContent.trim() && images.length === 0)} onClick={handlePost}>
+                            {loading ? "Posting..." : "Post"}
                         </PostBtn>
                     </RightActions>
                 </ActionBar>
@@ -145,6 +153,29 @@ const Modal = styled.div`
     position: relative;
 `;
 
+const SpinnerOverlay = styled.div`
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+`;
+
+const Spinner = styled.div`
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid rgba(10, 102, 194, 0.2);
+    border-top-color: #0a66c2;
+    animation: spin 0.8s linear infinite;
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+`;
+
 const ModalHeader = styled.div`
     display: flex;
     justify-content: flex-end;
@@ -167,6 +198,11 @@ const CloseBtn = styled.button`
     
     &:hover {
         background-color: rgba(0, 0, 0, 0.08);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 `;
 
@@ -237,6 +273,11 @@ const PostTextarea = styled.textarea`
     &::placeholder {
         color: rgba(0, 0, 0, 0.6);
     }
+
+    &:disabled {
+        background: transparent;
+        color: rgba(0, 0, 0, 0.5);
+    }
 `;
 
 const EmojiBtn = styled.button`
@@ -252,6 +293,11 @@ const EmojiBtn = styled.button`
     
     &:hover {
         background-color: rgba(0, 0, 0, 0.08);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 `;
 
@@ -290,6 +336,11 @@ const RemoveThumb = styled.button`
     line-height: 24px;
     text-align: center;
     cursor: pointer;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
 
 const ActionBar = styled.div`
@@ -322,6 +373,11 @@ const RewriteBtn = styled.button`
     &:hover {
         background: rgba(0, 0, 0, 0.08);
     }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
 
 const MediaIcons = styled.div`
@@ -344,6 +400,11 @@ const MediaIcon = styled.button`
     @media (max-width: 768px) {
         display: ${props => props.$hideOnMobile ? 'none' : 'inline-flex'};
     }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
 
 const RightActions = styled.div`
@@ -362,6 +423,11 @@ const ScheduleIcon = styled.button`
     
     &:hover {
         background-color: rgba(0, 0, 0, 0.08);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 `;
 
@@ -383,6 +449,7 @@ const PostBtn = styled.button`
 const mapStateToProps = (state) => {
     return {
         user: state.userState.user,
+        loading: state.articleState.loading,
     };
 };
 

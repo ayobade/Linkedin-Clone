@@ -1,13 +1,51 @@
 import styled from "styled-components";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PostModal from "./PostModal";
 import { connect } from "react-redux";
+import { fetchPostsAPI, updatePostReactionAPI } from "../actions";
 
 const Main = (props) => {
     const [isSortOpen, setIsSortOpen] = useState(false);
     const [selectedSort, setSelectedSort] = useState("Top");
     const [showHiringCard, setShowHiringCard] = useState(true);
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+
+    const formatTimeAgo = (ts) => {
+        try {
+            let ms = 0;
+            if (!ts) return "now";
+            if (typeof ts.toMillis === "function") {
+                ms = ts.toMillis();
+            } else if (ts.seconds) {
+                ms = ts.seconds * 1000;
+            } else if (ts instanceof Date) {
+                ms = ts.getTime();
+            } else {
+                return "now";
+            }
+            const diff = Date.now() - ms;
+            if (diff < 60000) return "now";
+            const minutes = Math.floor(diff / 60000);
+            if (minutes < 60) return `${minutes}m`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h`;
+            const days = Math.floor(hours / 24);
+            if (days < 7) return `${days}d`;
+            const weeks = Math.floor(days / 7);
+            if (weeks < 4) return `${weeks}w`;
+            const months = Math.floor(days / 30);
+            if (months < 12) return `${months}mo`;
+            const years = Math.floor(days / 365);
+            return `${years}y`;
+        } catch {
+            return "now";
+        }
+    };
+
+    useEffect(() => {
+        if (props.fetchPosts) props.fetchPosts();
+    }, [props.fetchPosts]);
+
 
     return (
         <Container>
@@ -73,6 +111,7 @@ const Main = (props) => {
                             active={selectedSort === "Top"}
                             onClick={() => {
                                 setSelectedSort("Top");
+                                if (props.fetchPosts) props.fetchPosts("Top");
                                 setIsSortOpen(false);
                             }}
                         >
@@ -82,6 +121,7 @@ const Main = (props) => {
                             active={selectedSort === "Recent"}
                             onClick={() => {
                                 setSelectedSort("Recent");
+                                if (props.fetchPosts) props.fetchPosts("Recent");
                                 setIsSortOpen(false);
                             }}
                         >
@@ -90,6 +130,81 @@ const Main = (props) => {
                     </SortDropdown>
                 )}
             </SortSection>
+
+            <PostModal 
+                isOpen={isPostModalOpen} 
+                onClose={() => setIsPostModalOpen(false)} 
+            />
+            {Array.isArray(props.posts) && props.posts.length === 0 && (
+                <div style={{ color: 'rgba(0,0,0,0.6)', fontSize: 14, padding: 8 }}>No posts yet</div>
+            )}
+            {Array.isArray(props.posts) && props.posts.length > 0 && props.posts.map((post) => (
+                <FeedPostCard key={post.id}>
+                    <PostCardHeader>
+                        <PostAuthorInfo>
+                            <PostAuthorImg src={post.user?.photoURL || "/images/user.svg"} alt={post.user?.displayName || "User"} />
+                            <AuthorDetails>
+                                <AuthorName>{post.user?.displayName || "User"}</AuthorName>
+                                <AuthorTitle>{post.user?.email || ""}</AuthorTitle>
+                                <PostMeta>
+                                    <PostTime>{formatTimeAgo(post.timestamp)}</PostTime>
+                                    <GlobeIcon>🌐</GlobeIcon>
+                                    <ConnectionBadge>• 1st</ConnectionBadge>
+                                </PostMeta>
+                            </AuthorDetails>
+                        </PostAuthorInfo>
+                        <PostOptions>
+                            <MoreBtn>⋯</MoreBtn>
+                            <CloseBtn>×</CloseBtn>
+                        </PostOptions>
+                    </PostCardHeader>
+
+                    <PostContent>
+                        <PostText>{post.description}</PostText>
+                    </PostContent>
+
+                    {(post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && (
+                        <PostImage>
+                            {post.imageUrls && post.imageUrls.length > 1 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                                    {post.imageUrls.map((u) => (
+                                        <img key={u} src={u} alt="Post" style={{ width: '100%', borderRadius: 8, maxHeight: 240, objectFit: 'cover' }} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <img src={post.imageUrl || post.imageUrls[0]} alt="Post" />
+                            )}
+                        </PostImage>
+                    )}
+
+                    <PostStats>
+                        <Reactions>
+                            <ReactionImg src="https://static-exp1.licdn.com/sc/h/d310t2g24pvdy4pt1jkedo4yb" alt="Like" />
+                            <ReactionImg src="https://static-exp1.licdn.com/sc/h/5thsbmikm6a8uov24ygwd914f" alt="Celebrate" />
+                            <ReactionCount>{typeof post.likesCount === 'number' ? post.likesCount : 0}</ReactionCount>
+                        </Reactions>
+                        <PostEngagement>
+                            <EngagementText>{typeof post.commentsCount === 'number' ? post.commentsCount : 0} comments</EngagementText>
+                            <EngagementDot>·</EngagementDot>
+                            <EngagementText>{typeof post.repostCount === 'number' ? post.repostCount : 0} reposts</EngagementText>
+                        </PostEngagement>
+                    </PostStats>
+                    <FeedPostActions>
+                        <FeedPostActionBtn onClick={() => props.reactToPost(post.id, 'like', props.user, selectedSort)} $active={Array.isArray(post.likedBy) && props.user && post.likedBy.includes(props.user.uid)}>
+                            <ActionSvg src="/images/thumb-up-svgrepo-com.svg" alt="Like" $active={Array.isArray(post.likedBy) && props.user && post.likedBy.includes(props.user.uid)} />
+                        </FeedPostActionBtn>
+                        <FeedPostActionBtn>
+                            <ActionSvg src="/images/comment-2-svgrepo-com.svg" alt="Comment" />
+                        </FeedPostActionBtn>
+                        <FeedPostActionBtn onClick={() => props.reactToPost(post.id, 'repost', props.user, selectedSort)} $repostActive={Array.isArray(post.repostedBy) && props.user && post.repostedBy.includes(props.user.uid)}>
+                            <ActionSvg src="/images/repost-round-svgrepo-com.svg" alt="Repost" $repostActive={Array.isArray(post.repostedBy) && props.user && post.repostedBy.includes(props.user.uid)} />
+                        </FeedPostActionBtn>
+                        <FeedPostActionBtn>
+                            <ActionSvg src="/images/send-email-svgrepo-com.svg" alt="Send" />
+                        </FeedPostActionBtn>
+                    </FeedPostActions>
+                </FeedPostCard>
+            ))}
 
             <FeedPostCard>
                 <PostCardHeader>
@@ -148,11 +263,6 @@ const Main = (props) => {
                     </FeedPostActionBtn>
                 </FeedPostActions>
             </FeedPostCard>
-
-            <PostModal 
-                isOpen={isPostModalOpen} 
-                onClose={() => setIsPostModalOpen(false)} 
-            />
         </Container>
     );
 };
@@ -609,13 +719,23 @@ const FeedPostActionBtn = styled.button`
 const ActionSvg = styled.img`
     width: 22px;
     height: 22px;
-    opacity: 0.85;
+    opacity: 0.95;
+    filter: ${props => props.$active ? 'invert(31%) sepia(92%) saturate(1118%) hue-rotate(187deg) brightness(89%) contrast(99%)' : props.$repostActive ? 'invert(23%) sepia(98%) saturate(3783%) hue-rotate(350deg) brightness(95%) contrast(94%)' : 'none'};
 `;
 
 const mapStateToProps = (state) => {
     return {
         user: state.userState.user,
+        posts: state.articleState.posts,
     };
 };
 
-export default connect(mapStateToProps)(Main);
+const mapDispatchToProps = (dispatch) => ({
+    fetchPosts: (sort) => dispatch(fetchPostsAPI(sort)),
+    reactToPost: (postId, reaction, user, sort) => dispatch(updatePostReactionAPI(postId, user, reaction, sort)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Main);
+
+
+

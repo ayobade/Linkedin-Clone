@@ -240,6 +240,12 @@ const NavListWrap = styled.ul`
   display: flex;
   flex-wrap: nowrap;
   list-style-type: none;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: space-around;
+    padding: 0 8px;
+  }
 `;
 
 const NavList = styled.li`
@@ -259,6 +265,13 @@ const NavList = styled.li`
     min-width: 80px;
     position: relative;
     text-decoration: none;
+
+    @media (max-width: 768px) {
+      flex: 1;
+      min-width: auto;
+      gap: 4px;
+      padding: 0 4px;
+    }
 
     span {
       color: rgba(0, 0, 0, 0.6);

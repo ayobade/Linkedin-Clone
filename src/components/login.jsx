@@ -9,7 +9,11 @@ const Login = (props) => {
       await auth.signInWithPopup(provider);
       window.location.href = "/home";
     } catch (e) {
-      alert(e.message);
+      if (e && (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request" || e.code === "auth/popup-blocked")) {
+        window.location.reload();
+        return;
+      }
+      alert(e && e.message ? e.message : "Sign-in failed");
     }
   };
 
@@ -21,8 +25,8 @@ const Login = (props) => {
           <img src="/images/login-logo.svg" alt="LinkedIn" />
         </a>
         <div>
-          <Join>Join now</Join>
-          <SignIn>Sign in</SignIn>
+          <Join onClick={(e) => { e.preventDefault(); handleGoogleSignIn(); }}>Join now</Join>
+          <SignIn onClick={(e) => { e.preventDefault(); handleGoogleSignIn(); }}>Sign in</SignIn>
         </div>
       </Nav>
 
@@ -36,12 +40,12 @@ const Login = (props) => {
               Continue with Google
             </GoogleButton>
 
-            <MicrosoftButton>
+            <MicrosoftButton onClick={handleGoogleSignIn}>
               <img src="/images/microsoft-50.svg" alt="Microsoft" />
               Continue with Microsoft
             </MicrosoftButton>
 
-            <EmailButton>
+            <EmailButton onClick={handleGoogleSignIn}>
               Sign in with email
             </EmailButton>
           </Buttons>
@@ -52,7 +56,7 @@ const Login = (props) => {
           </Legal>
 
           <Signup>
-            New to LinkedIn? <a href="#">Join now</a>
+            New to LinkedIn? <a href="#" onClick={(e) => { e.preventDefault(); handleGoogleSignIn(); }}>Join now</a>
           </Signup>
         </LeftColumn>
 

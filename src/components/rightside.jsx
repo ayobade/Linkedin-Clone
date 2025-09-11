@@ -1,7 +1,14 @@
 import styled from "styled-components";
 import { connect } from "react-redux";
+import { useState } from "react";
 
 const Rightside = (props) => {
+    const [following, setFollowing] = useState({ openai: false, google: false, meta: false });
+
+    const toggleFollow = (key) => {
+        setFollowing((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
+
     return (
         <Container>
             <PuzzleCard>
@@ -29,7 +36,9 @@ const Rightside = (props) => {
                         <CompanyName>OpenAI</CompanyName>
                         <CompanyDesc>Company • Research Services</CompanyDesc>
                     </CompanyInfo>
-                    <FollowBtn>Follow</FollowBtn>
+                    <FollowBtn $following={following.openai} onClick={() => toggleFollow('openai')}>
+                        {following.openai ? 'Following' : 'Follow'}
+                    </FollowBtn>
                 </FeedItem>
 
                 <FeedItem>
@@ -38,7 +47,9 @@ const Rightside = (props) => {
                         <CompanyName>Google</CompanyName>
                         <CompanyDesc>Company • Research Services</CompanyDesc>
                     </CompanyInfo>
-                    <FollowBtn>Follow</FollowBtn>
+                    <FollowBtn $following={following.google} onClick={() => toggleFollow('google')}>
+                        {following.google ? 'Following' : 'Follow'}
+                    </FollowBtn>
                 </FeedItem>
 
                 <FeedItem>
@@ -47,7 +58,9 @@ const Rightside = (props) => {
                         <CompanyName>Meta</CompanyName>
                         <CompanyDesc>Company • Software Development</CompanyDesc>
                     </CompanyInfo>
-                    <FollowBtn>Follow</FollowBtn>
+                    <FollowBtn $following={following.meta} onClick={() => toggleFollow('meta')}>
+                        {following.meta ? 'Following' : 'Follow'}
+                    </FollowBtn>
                 </FeedItem>
 
                 <ViewAllLink>
@@ -237,26 +250,20 @@ const CompanyDesc = styled.div`
 `;
 
 const FollowBtn = styled.button`
-    background: white;
-    border: 1px solid rgba(0, 0, 0, 0.6);
+    background: ${p => p.$following ? '#0a66c2' : 'white'};
+    border: 1px solid ${p => p.$following ? '#0a66c2' : 'rgba(0, 0, 0, 0.6)'};
     border-radius: 16px;
     padding: 6px 16px;
     font-size: 14px;
     font-weight: 600;
-    color: rgba(0, 0, 0, 0.9);
+    color: ${p => p.$following ? '#fff' : 'rgba(0, 0, 0, 0.9)'};
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 4px;
     
     &:hover {
-        background-color: rgba(0, 0, 0, 0.04);
-    }
-    
-    &::before {
-        content: "+";
-        font-size: 16px;
-        font-weight: 600;
+        background-color: ${p => p.$following ? '#004182' : 'rgba(0, 0, 0, 0.04)'};
     }
 `;
 

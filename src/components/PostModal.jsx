@@ -1,9 +1,47 @@
 import styled from "styled-components";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { connect } from "react-redux";
+import { postArticleAPI } from "../actions";
 
-const PostModal = ({ isOpen, onClose, user }) => {
+const PostModal = ({ isOpen, onClose, user, postArticle }) => {
     const [postContent, setPostContent] = useState("");
+    const [images, setImages] = useState([]);
+    const fileInputRef = useRef(null);
+
+    const handleOpenFilePicker = () => fileInputRef.current && fileInputRef.current.click();
+
+    const handleFilesSelected = (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        const newUrls = files.map((f) => ({ url: URL.createObjectURL(f), file: f }));
+        setImages((prev) => [...prev, ...newUrls]);
+        e.target.value = "";
+    };
+
+    const handleRemoveImage = (idx) => {
+        setImages((prev) => {
+            const copy = [...prev];
+            const [removed] = copy.splice(idx, 1);
+            try { removed && removed.url && URL.revokeObjectURL(removed.url); } catch {}
+            return copy;
+        });
+    };
+
+    const handlePost = async (e) => {
+        e.preventDefault();
+        const files = images.map((i) => i.file).filter(Boolean);
+        await postArticle({
+            files,
+            description: postContent.trim(),
+            user,
+        });
+        setPostContent("");
+        setImages((prev) => {
+            prev.forEach((i) => { try { i.url && URL.revokeObjectURL(i.url); } catch {} });
+            return [];
+        });
+        onClose();
+    };
 
     if (!isOpen) return null;
 
@@ -38,22 +76,41 @@ const PostModal = ({ isOpen, onClose, user }) => {
                     <EmojiBtn>😊</EmojiBtn>
                 </PostInputArea>
 
+                {images.length > 0 && (
+                    <Gallery>
+                        {images.map((img, idx) => (
+                            <Thumb key={img.url}>
+                                <ThumbImg src={img.url} alt={`upload-${idx}`} />
+                                <RemoveThumb onClick={() => handleRemoveImage(idx)}>×</RemoveThumb>
+                            </Thumb>
+                        ))}
+                    </Gallery>
+                )}
+
                 <ActionBar>
                     <LeftActions>
                         <RewriteBtn>
                             ✨ Rewrite with AI
                         </RewriteBtn>
                         <MediaIcons>
-                            <MediaIcon>📷</MediaIcon>
-                            <MediaIcon>📅</MediaIcon>
-                            <MediaIcon>⚙️</MediaIcon>
-                            <MediaIcon>➕</MediaIcon>
+                            <MediaIcon onClick={handleOpenFilePicker}>📷</MediaIcon>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleFilesSelected}
+                                style={{ display: "none" }}
+                            />
+                            <MediaIcon $hideOnMobile>📅</MediaIcon>
+                            <MediaIcon $hideOnMobile>⚙️</MediaIcon>
+                            
                         </MediaIcons>
                     </LeftActions>
                     
                     <RightActions>
                         <ScheduleIcon>🕐</ScheduleIcon>
-                        <PostBtn disabled={!postContent.trim()}>
+                        <PostBtn disabled={!postContent.trim() && images.length === 0} onClick={handlePost}>
                             Post
                         </PostBtn>
                     </RightActions>
@@ -198,6 +255,43 @@ const EmojiBtn = styled.button`
     }
 `;
 
+const Gallery = styled.div`
+    padding: 0 20px 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+`;
+
+const Thumb = styled.div`
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f3f2ef;
+`;
+
+const ThumbImg = styled.img`
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+`;
+
+const RemoveThumb = styled.button`
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e53935;
+    color: #fff;
+    border: none;
+    font-size: 16px;
+    line-height: 24px;
+    text-align: center;
+    cursor: pointer;
+`;
+
 const ActionBar = styled.div`
     display: flex;
     justify-content: space-between;
@@ -246,6 +340,10 @@ const MediaIcon = styled.button`
     &:hover {
         background-color: rgba(0, 0, 0, 0.08);
     }
+
+    @media (max-width: 768px) {
+        display: ${props => props.$hideOnMobile ? 'none' : 'inline-flex'};
+    }
 `;
 
 const RightActions = styled.div`
@@ -288,4 +386,8 @@ const mapStateToProps = (state) => {
     };
 };
 
-export default connect(mapStateToProps)(PostModal);
+const mapDispatchToProps = (dispatch) => ({
+    postArticle: (payload) => dispatch(postArticleAPI(payload)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(PostModal);

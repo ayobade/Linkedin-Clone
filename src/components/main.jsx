@@ -1,8 +1,9 @@
 import styled from "styled-components";
 import { useState, useEffect } from "react";
+import db from "../firebase";
 import PostModal from "./PostModal";
 import { connect } from "react-redux";
-import { fetchPostsAPI, updatePostReactionAPI, deletePostAPI } from "../actions";
+import { fetchPostsAPI, updatePostReactionAPI, deletePostAPI, addCommentAPI, toggleCommentLikeAPI, deleteCommentAPI, addReplyAPI } from "../actions";
 
 const Main = (props) => {
     const [isSortOpen, setIsSortOpen] = useState(false);
@@ -10,6 +11,27 @@ const Main = (props) => {
     const [showHiringCard, setShowHiringCard] = useState(true);
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
     const [menuOpenId, setMenuOpenId] = useState(null);
+    const [openCommentId, setOpenCommentId] = useState(null);
+    const [commentTextById, setCommentTextById] = useState({});
+    const [commentsById, setCommentsById] = useState({});
+    const [repliesById, setRepliesById] = useState({});
+    const [openReplyId, setOpenReplyId] = useState(null);
+    const [replyTextById, setReplyTextById] = useState({});
+
+    const loadComments = async (postId) => {
+        try {
+            const snap = await db.collection("posts").doc(postId).collection("comments").orderBy("timestamp", "asc").get();
+            const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            setCommentsById((prev) => ({ ...prev, [postId]: items }));
+            
+            // Load replies for each comment
+            for (const comment of items) {
+                const repliesSnap = await db.collection("posts").doc(postId).collection("comments").doc(comment.id).collection("replies").orderBy("timestamp", "asc").get();
+                const replies = repliesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+                setRepliesById((prev) => ({ ...prev, [`${postId}-${comment.id}`]: replies }));
+            }
+        } catch (err) { console.error(err); }
+    };
 
     const formatTimeAgo = (ts) => {
         try {
@@ -218,7 +240,7 @@ const Main = (props) => {
                         <FeedPostActionBtn onClick={() => props.reactToPost(post.id, 'like', props.user, selectedSort)} $active={Array.isArray(post.likedBy) && props.user && post.likedBy.includes(props.user.uid)}>
                             <ActionSvg src="/images/thumb-up-svgrepo-com.svg" alt="Like" $active={Array.isArray(post.likedBy) && props.user && post.likedBy.includes(props.user.uid)} />
                         </FeedPostActionBtn>
-                        <FeedPostActionBtn>
+                        <FeedPostActionBtn onClick={() => { const next = openCommentId === post.id ? null : post.id; setOpenCommentId(next); if (next) loadComments(post.id); }}>
                             <ActionSvg src="/images/comment-2-svgrepo-com.svg" alt="Comment" />
                         </FeedPostActionBtn>
                         <FeedPostActionBtn onClick={() => props.reactToPost(post.id, 'repost', props.user, selectedSort)} $repostActive={Array.isArray(post.repostedBy) && props.user && post.repostedBy.includes(props.user.uid)}>
@@ -228,6 +250,159 @@ const Main = (props) => {
                             <ActionSvg src="/images/send-email-svgrepo-com.svg" alt="Send" />
                         </FeedPostActionBtn>
                     </FeedPostActions>
+
+                    {openCommentId === post.id && (
+                        <CommentArea>
+                            <CommentRow>
+                                <CommentAvatar src={props.user && props.user.photoURL && props.user.photoURL !== 'null' ? props.user.photoURL : "/images/user.svg"} alt="Me" onError={(e)=>{e.currentTarget.src="/images/user.svg"}} />
+                                <CommentInputWrapper>
+                                    <CommentInput 
+                                        placeholder="Add a comment..."
+                                        value={commentTextById[post.id] || ""}
+                                        onChange={(e) => setCommentTextById({ ...commentTextById, [post.id]: e.target.value })}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && (commentTextById[post.id] || '').trim()) {
+                                                props.addComment(post.id, props.user, commentTextById[post.id], selectedSort);
+                                                setCommentTextById({ ...commentTextById, [post.id]: "" });
+                                            }
+                                        }}
+                                    />
+                                    <CommentRight>
+                                        <CommentIcon role="img" aria-label="emoji">🙂</CommentIcon>
+                                        <CommentIcon>
+                                            <img src="/images/photo.svg" alt="Attach" />
+                                        </CommentIcon>
+                                        <CommentPostBtn 
+                                            disabled={!((commentTextById[post.id] || '').trim())}
+                                            onClick={() => {
+                                                if ((commentTextById[post.id] || '').trim()) {
+                                                    props.addComment(post.id, props.user, commentTextById[post.id], selectedSort);
+                                                    setCommentTextById({ ...commentTextById, [post.id]: "" });
+                                                    loadComments(post.id);
+                                                }
+                                            }}
+                                        >Post</CommentPostBtn>
+                                    </CommentRight>
+                                </CommentInputWrapper>
+                            </CommentRow>
+
+                            {Array.isArray(commentsById[post.id]) && commentsById[post.id].length > 0 && (
+                                <CommentsList>
+                                    {commentsById[post.id].map((c) => (
+                                        <CommentItem key={c.id}>
+                                            <CommentAvatar src={c.user?.photoURL || "/images/user.svg"} alt={c.user?.displayName || ""} />
+                                            <CommentBubble>
+                                                <CommentHeader>
+                                                    <CommentName>{c.user?.displayName || "User"}</CommentName>
+                                                    <CommentTime>{formatTimeAgo(c.timestamp)}</CommentTime>
+                                                </CommentHeader>
+                                                <CommentTextRow>
+                                                    <CommentText>{c.text}</CommentText>
+                                                    {(props.user && c.user && props.user.uid === c.user.uid) && (
+                                                        <SmallMenuWrap>
+                                                            <SmallMenuTrigger onClick={(e) => { e.stopPropagation(); setMenuOpenId(`c-${c.id}`); }}>⋯</SmallMenuTrigger>
+                                                            {menuOpenId === `c-${c.id}` && (
+                                                                <SmallMenu onClick={(e) => e.stopPropagation()}>
+                                                                    <MenuItemButton onClick={() => { props.deleteComment(post.id, c.id, props.user); setMenuOpenId(null); loadComments(post.id); }}>Delete</MenuItemButton>
+                                                                </SmallMenu>
+                                                            )}
+                                                        </SmallMenuWrap>
+                                                    )}
+                                                </CommentTextRow>
+                                                <CommentActionsRow>
+                                                    <CommentActionBtn onClick={() => { props.toggleCommentLike(post.id, c.id, props.user); setTimeout(() => loadComments(post.id), 200); }} $active={Array.isArray(c.likedBy) && props.user && c.likedBy.includes(props.user.uid)}>
+                                                        Like {typeof c.likesCount === 'number' ? c.likesCount : 0}
+                                                    </CommentActionBtn>
+                                                    <CommentActionBtn onClick={() => setOpenReplyId(openReplyId === c.id ? null : c.id)}>
+                                                        Reply
+                                                    </CommentActionBtn>
+                                                </CommentActionsRow>
+                                                
+                                                {openReplyId === c.id && (
+                                                    <ReplyArea>
+                                                        <ReplyInputWrapper>
+                                                            <ReplyRow>
+                                                                <ReplyInput
+                                                                    placeholder="Write a reply..."
+                                                                    value={replyTextById[c.id] || ""}
+                                                                    onChange={(e) => setReplyTextById({ ...replyTextById, [c.id]: e.target.value })}
+                                                                />
+                                                                <ReplyRight>
+                                                                    <ReplyPostBtn
+                                                                        onClick={() => {
+                                                                            if (replyTextById[c.id]?.trim()) {
+                                                                                props.addReply(post.id, c.id, props.user, replyTextById[c.id]);
+                                                                                setReplyTextById({ ...replyTextById, [c.id]: "" });
+                                                                                setOpenReplyId(null);
+                                                                                setTimeout(() => loadComments(post.id), 500);
+                                                                            }
+                                                                        }}
+                                                                        disabled={!replyTextById[c.id]?.trim()}
+                                                                    >Reply</ReplyPostBtn>
+                                                                </ReplyRight>
+                                                            </ReplyRow>
+                                                        </ReplyInputWrapper>
+                                                    </ReplyArea>
+                                                )}
+                                                
+                                                {Array.isArray(repliesById[`${post.id}-${c.id}`]) && repliesById[`${post.id}-${c.id}`].length > 0 && (
+                                                    <RepliesList>
+                                                        {repliesById[`${post.id}-${c.id}`].map((reply) => (
+                                                            <ReplyItem key={reply.id}>
+                                                                <ReplyAvatar src={reply.user?.photoURL || "/images/user.svg"} alt={reply.user?.displayName || ""} />
+                                                                <ReplyBubble>
+                                                                    <ReplyHeader>
+                                                                        <ReplyName>{reply.user?.displayName || "User"}</ReplyName>
+                                                                        <ReplyTime>{formatTimeAgo(reply.timestamp)}</ReplyTime>
+                                                                    </ReplyHeader>
+                                                                    <ReplyText>{reply.text}</ReplyText>
+                                                                    <ReplyActionsRow>
+                                                                        <ReplyActionBtn onClick={() => { props.toggleCommentLike(post.id, reply.id, props.user); setTimeout(() => loadComments(post.id), 200); }} $active={Array.isArray(reply.likedBy) && props.user && reply.likedBy.includes(props.user.uid)}>
+                                                                            Like {typeof reply.likesCount === 'number' ? reply.likesCount : 0}
+                                                                        </ReplyActionBtn>
+                                                                        <ReplyActionBtn onClick={() => setOpenReplyId(openReplyId === `reply-${reply.id}` ? null : `reply-${reply.id}`)}>
+                                                                            Reply
+                                                                        </ReplyActionBtn>
+                                                                    </ReplyActionsRow>
+                                                                    
+                                                                    {openReplyId === `reply-${reply.id}` && (
+                                                                        <NestedReplyArea>
+                                                                            <NestedReplyInputWrapper>
+                                                                                <NestedReplyRow>
+                                                                                    <NestedReplyInput
+                                                                                        placeholder="Write a reply..."
+                                                                                        value={replyTextById[`reply-${reply.id}`] || ""}
+                                                                                        onChange={(e) => setReplyTextById({ ...replyTextById, [`reply-${reply.id}`]: e.target.value })}
+                                                                                    />
+                                                                                    <NestedReplyRight>
+                                                                                        <NestedReplyPostBtn
+                                                                                            onClick={() => {
+                                                                                                if (replyTextById[`reply-${reply.id}`]?.trim()) {
+                                                                                                    props.addReply(post.id, c.id, props.user, replyTextById[`reply-${reply.id}`]);
+                                                                                                    setReplyTextById({ ...replyTextById, [`reply-${reply.id}`]: "" });
+                                                                                                    setOpenReplyId(null);
+                                                                                                    setTimeout(() => loadComments(post.id), 500);
+                                                                                                }
+                                                                                            }}
+                                                                                            disabled={!replyTextById[`reply-${reply.id}`]?.trim()}
+                                                                                        >Reply</NestedReplyPostBtn>
+                                                                                    </NestedReplyRight>
+                                                                                </NestedReplyRow>
+                                                                            </NestedReplyInputWrapper>
+                                                                        </NestedReplyArea>
+                                                                    )}
+                                                                </ReplyBubble>
+                                                            </ReplyItem>
+                                                        ))}
+                                                    </RepliesList>
+                                                )}
+                                            </CommentBubble>
+                                        </CommentItem>
+                                    ))}
+                                </CommentsList>
+                            )}
+                        </CommentArea>
+                    )}
                 </FeedPostCard>
             ))}
 
@@ -777,6 +952,346 @@ const ActionSvg = styled.img`
     filter: ${props => props.$active ? 'invert(31%) sepia(92%) saturate(1118%) hue-rotate(187deg) brightness(89%) contrast(99%)' : props.$repostActive ? 'invert(23%) sepia(98%) saturate(3783%) hue-rotate(350deg) brightness(95%) contrast(94%)' : 'none'};
 `;
 
+const CommentArea = styled.div`
+    padding-top: 10px;
+`;
+
+const CommentRow = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+`;
+
+const CommentAvatar = styled.img`
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+`;
+
+const CommentInputWrapper = styled.div`
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 20px;
+    padding: 6px 8px 6px 12px;
+`;
+
+const CommentInput = styled.input`
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: rgba(0,0,0,0.9);
+    background: transparent;
+`;
+
+const CommentRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    img { width: 18px; height: 18px; opacity: 0.75; }
+`;
+
+const CommentIcon = styled.span`
+    font-size: 16px;
+    color: rgba(0,0,0,0.7);
+`;
+
+const CommentPostBtn = styled.button`
+    background: #0a66c2;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+        background: rgba(0,0,0,0.15);
+        color: rgba(0,0,0,0.5);
+        cursor: not-allowed;
+    }
+`;
+
+const CommentsList = styled.div`
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const CommentItem = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+`;
+
+const CommentBubble = styled.div`
+    background: #f2f2f2;
+    border-radius: 12px;
+    padding: 8px 10px;
+    max-width: 100%;
+    width: 100%;
+`;
+
+const CommentHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+`;
+
+const CommentName = styled.span`
+    font-weight: 600;
+    font-size: 12px;
+    color: rgba(0,0,0,0.9);
+`;
+
+const CommentTime = styled.span`
+    font-size: 11px;
+    color: rgba(0,0,0,0.6);
+`;
+
+const CommentText = styled.div`
+    font-size: 13px;
+    color: rgba(0,0,0,0.9);
+    line-height: 1.3;
+`;
+
+const CommentTextRow = styled.div`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+`;
+
+const SmallMenuWrap = styled.div`
+    position: relative;
+`;
+
+const SmallMenuTrigger = styled.button`
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: rgba(0,0,0,0.6);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+
+    &:hover { background: rgba(0,0,0,0.06); }
+`;
+
+const SmallMenu = styled.div`
+    position: absolute;
+    top: 18px;
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 20;
+`;
+
+const ReplyArea = styled.div`
+    margin-top: 8px;
+`;
+
+const ReplyInputWrapper = styled.div`
+    background: white;
+    border-radius: 8px;
+    padding: 8px;
+    border: 1px solid #e0e0e0;
+`;
+
+const ReplyRow = styled.div`
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+`;
+
+const ReplyInput = styled.textarea`
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 13px;
+    line-height: 1.3;
+    min-height: 32px;
+    max-height: 80px;
+    font-family: inherit;
+`;
+
+const ReplyRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const ReplyPostBtn = styled.button`
+    background: #0a66c2;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    
+    &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+`;
+
+const RepliesList = styled.div`
+    margin-top: 8px;
+    padding-left: 16px;
+    border-left: 2px solid #e0e0e0;
+`;
+
+const ReplyItem = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+`;
+
+const ReplyAvatar = styled.img`
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+`;
+
+const ReplyBubble = styled.div`
+    background: #f8f8f8;
+    border-radius: 12px;
+    padding: 6px 8px;
+    max-width: 100%;
+    width: 100%;
+`;
+
+const ReplyHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+`;
+
+const ReplyName = styled.span`
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(0,0,0,0.9);
+`;
+
+const ReplyTime = styled.span`
+    font-size: 11px;
+    color: rgba(0,0,0,0.6);
+`;
+
+const ReplyText = styled.div`
+    font-size: 12px;
+    color: rgba(0,0,0,0.9);
+    line-height: 1.3;
+`;
+
+const ReplyActionsRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+`;
+
+const ReplyActionBtn = styled.button`
+    background: none;
+    border: none;
+    font-size: 11px;
+    color: rgba(0,0,0,0.6);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    
+    &:hover { background: rgba(0,0,0,0.06); }
+    
+    ${props => props.$active && `
+        color: #0a66c2;
+        font-weight: 600;
+    `}
+`;
+
+const NestedReplyArea = styled.div`
+    margin-top: 6px;
+`;
+
+const NestedReplyInputWrapper = styled.div`
+    background: white;
+    border-radius: 6px;
+    padding: 6px;
+    border: 1px solid #e0e0e0;
+`;
+
+const NestedReplyRow = styled.div`
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+`;
+
+const NestedReplyInput = styled.textarea`
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 12px;
+    line-height: 1.3;
+    min-height: 28px;
+    max-height: 70px;
+    font-family: inherit;
+`;
+
+const NestedReplyRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+`;
+
+const NestedReplyPostBtn = styled.button`
+    background: #0a66c2;
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    
+    &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+`;
+
+const CommentActionsRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+`;
+
+const CommentActionBtn = styled.button`
+    background: none;
+    border: none;
+    font-size: 12px;
+    color: ${props => props.$active ? '#0a66c2' : 'rgba(0,0,0,0.6)'};
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+
+    &:hover { background: rgba(0,0,0,0.04); }
+`;
+
 const mapStateToProps = (state) => {
     return {
         user: state.userState.user,
@@ -788,6 +1303,10 @@ const mapDispatchToProps = (dispatch) => ({
     fetchPosts: (sort) => dispatch(fetchPostsAPI(sort)),
     reactToPost: (postId, reaction, user, sort) => dispatch(updatePostReactionAPI(postId, user, reaction, sort)),
     deletePost: (postId, user, sort) => dispatch(deletePostAPI(postId, user, sort)),
+    addComment: (postId, user, text, sort) => dispatch(addCommentAPI(postId, user, text, sort)),
+    toggleCommentLike: (postId, commentId, user) => dispatch(toggleCommentLikeAPI(postId, commentId, user)),
+    deleteComment: (postId, commentId, user) => dispatch(deleteCommentAPI(postId, commentId, user)),
+    addReply: (postId, commentId, user, text) => dispatch(addReplyAPI(postId, commentId, user, text)),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

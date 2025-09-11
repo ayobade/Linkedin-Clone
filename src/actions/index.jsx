@@ -24,7 +24,7 @@ export const setPosts = (posts) => {
 };
 
 export function signInAPI() {
-  return (dispatch) => {
+    return (dispatch) => {
     auth
       .signInWithPopup(provider)
       .then((payload) => {
@@ -181,6 +181,105 @@ export function deletePostAPI(postId, currentUser, sort = "Recent") {
 
       await docRef.delete();
       dispatch(fetchPostsAPI(sort));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+}
+
+export function addCommentAPI(postId, user, text, sort = "Recent") {
+  return async (dispatch) => {
+    try {
+      const trimmed = (text || "").trim();
+      if (!postId || !user || !user.uid || !trimmed) return;
+      const postRef = db.collection("posts").doc(postId);
+      await postRef.collection("comments").add({
+        user: {
+          uid: user.uid,
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
+          email: user.email || "",
+        },
+        text: trimmed,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      await postRef.update({
+        commentsCount: firebase.firestore.FieldValue.increment(1),
+      });
+      dispatch(fetchPostsAPI(sort));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+}
+
+export function toggleCommentLikeAPI(postId, commentId, user) {
+  return async () => {
+    try {
+      if (!postId || !commentId || !user || !user.uid) return;
+      const commentRef = db.collection("posts").doc(postId).collection("comments").doc(commentId);
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(commentRef);
+        if (!snap.exists) return;
+        const data = snap.data() || {};
+        const likedBy = Array.isArray(data.likedBy) ? data.likedBy : [];
+        const hasLiked = likedBy.includes(user.uid);
+        tx.update(commentRef, {
+          likedBy: hasLiked
+            ? firebase.firestore.FieldValue.arrayRemove(user.uid)
+            : firebase.firestore.FieldValue.arrayUnion(user.uid),
+          likesCount: firebase.firestore.FieldValue.increment(hasLiked ? -1 : 1),
+        });
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+}
+
+export function deleteCommentAPI(postId, commentId, currentUser) {
+  return async () => {
+    try {
+      if (!postId || !commentId || !currentUser || !currentUser.uid) return;
+      const postRef = db.collection("posts").doc(postId);
+      const commentRef = postRef.collection("comments").doc(commentId);
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(commentRef);
+        if (!snap.exists) return;
+        const data = snap.data() || {};
+        if (!data.user || data.user.uid !== currentUser.uid) return; // only owner can delete
+        tx.delete(commentRef);
+        tx.update(postRef, { commentsCount: firebase.firestore.FieldValue.increment(-1) });
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+}
+
+export function addReplyAPI(postId, commentId, user, text) {
+  return async () => {
+    try {
+      if (!postId || !commentId || !user || !user.uid || !text?.trim()) return;
+      const postRef = db.collection("posts").doc(postId);
+      const commentRef = postRef.collection("comments").doc(commentId);
+      const repliesRef = commentRef.collection("replies");
+      
+      await db.runTransaction(async (tx) => {
+        await repliesRef.add({
+          user: {
+            uid: user.uid,
+            displayName: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL
+          },
+          text: text.trim(),
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          likesCount: 0,
+          likedBy: []
+        });
+        tx.update(postRef, { commentsCount: firebase.firestore.FieldValue.increment(1) });
+      });
     } catch (err) {
       console.error(err);
     }

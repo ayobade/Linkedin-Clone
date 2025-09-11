@@ -1,7 +1,8 @@
 import styled from "styled-components";
 import { useState } from "react";
+import { connect } from "react-redux";
 
-const PostModal = ({ isOpen, onClose }) => {
+const PostModal = ({ isOpen, onClose, user }) => {
     const [postContent, setPostContent] = useState("");
 
     if (!isOpen) return null;
@@ -14,10 +15,11 @@ const PostModal = ({ isOpen, onClose }) => {
                 </ModalHeader>
                 
                 <UserSection>
-                    <UserProfileImg src="/images/user.svg" alt="Ayobade Makinde" />
+                    
+                    <UserProfileImg src={user && user.photoURL && user.photoURL !== 'null' ? user.photoURL : "/images/user.svg"} alt="Profile" onError={(e)=>{e.currentTarget.src="/images/user.svg"}} />
                     <UserInfo>
                         <UserName>
-                            Ayobade Makinde
+                            {user && user.displayName ? (user.displayName.trim().split(" ")[0] || "Hello") : "Hello"}
                             <UserDropdown>▼</UserDropdown>
                         </UserName>
                         <PostVisibility>
@@ -280,4 +282,10 @@ const PostBtn = styled.button`
     }
 `;
 
-export default PostModal;
+const mapStateToProps = (state) => {
+    return {
+        user: state.userState.user,
+    };
+};
+
+export default connect(mapStateToProps)(PostModal);

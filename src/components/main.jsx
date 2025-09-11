@@ -1,8 +1,9 @@
 import styled from "styled-components";
 import { useState } from "react";
 import PostModal from "./PostModal";
+import { connect } from "react-redux";
 
-const Main = () => {
+const Main = (props) => {
     const [isSortOpen, setIsSortOpen] = useState(false);
     const [selectedSort, setSelectedSort] = useState("Top");
     const [showHiringCard, setShowHiringCard] = useState(true);
@@ -15,11 +16,11 @@ const Main = () => {
                     <CloseBtn onClick={() => setShowHiringCard(false)}>×</CloseBtn>
                     <HiringProfile>
                         <ProfileContainer>
-                            <HiringProfileImg src="/images/user.svg" alt="Profile" />
+                            <HiringProfileImg src={props.user && props.user.photoURL && props.user.photoURL !== 'null' ? props.user.photoURL : "/images/user.svg"} alt="Profile" onError={(e)=>{e.currentTarget.src="/images/user.svg"}} />
                             <HiringBadge>#HIRING</HiringBadge>
                         </ProfileContainer>
                     </HiringProfile>
-                    <HiringTitle>Hi Ayobade, are you hiring?</HiringTitle>
+                    <HiringTitle>Hi {props.user && props.user.displayName ? props.user.displayName.trim().split(" ")[0] || "there" : "there"}, are you hiring?</HiringTitle>
                     <HiringDesc>Discover free and easy ways to find a great hire, fast.</HiringDesc>
                     <HiringActions>
                         <HiringBtn $primary onClick={() => setShowHiringCard(false)}>Yes, I'm hiring</HiringBtn>
@@ -30,7 +31,7 @@ const Main = () => {
 
             <StartPostCard>
                 <PostHeader>
-                    <ProfileImg src="/images/user.svg" alt="Profile" />
+                    <ProfileImg src={props.user && props.user.photoURL && props.user.photoURL !== 'null' ? props.user.photoURL : "/images/user.svg"} alt="Profile" onError={(e)=>{e.currentTarget.src="/images/user.svg"}} />
                     <PostInput 
                         placeholder="Start a post" 
                         onClick={() => setIsPostModalOpen(true)}
@@ -308,7 +309,7 @@ const HiringBadge = styled.div`
     bottom: -8px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #8f5849;
+    background-color: #0a66c2;
     color: white;
     font-size: 10px;
     font-weight: 600;
@@ -611,4 +612,10 @@ const ActionSvg = styled.img`
     opacity: 0.85;
 `;
 
-export default Main;
+const mapStateToProps = (state) => {
+    return {
+        user: state.userState.user,
+    };
+};
+
+export default connect(mapStateToProps)(Main);

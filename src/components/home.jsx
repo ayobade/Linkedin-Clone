@@ -3,10 +3,13 @@ import Header from "./header";
 import Leftside from "./leftside";
 import Main from "./main";
 import Rightside from "./rightside";
+import { connect } from "react-redux";
+import {Navigate} from "react-router-dom";
 
-const Home = () => {
+const Home = (props) => {
     return (
         <Container>
+            {/* {!props.user && <Navigate to="/" />} */}
             <Header />
             <Layout>
                 <Leftside />
@@ -43,5 +46,14 @@ const Layout = styled.div`
   }
 `;
 
+// const mapStateToProps = (state) => {
+//   return {
+//     user: state.userState.user,
+//   };
+// };
+
+
+
+// export default connect(mapStateToProps)(Home);
 
 export default Home;

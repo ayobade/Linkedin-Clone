@@ -183,6 +183,9 @@ const Search = styled.div`
       color: rgba(0, 0, 0, 0.6);
     }
   }
+    @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const SearchIcon = styled.div`
@@ -200,6 +203,9 @@ const SearchIcon = styled.div`
     width: 16px;
     height: 16px;
     opacity: 0.6;
+  }
+    @media (max-width: 768px) {
+    display: none;
   }
 `;
 
@@ -302,9 +308,7 @@ const User = styled(NavList)`
     opacity: 0.8;
   }
 
-  @media (max-width: 768px) {
-    display: none;
-  }
+  
 `;
 
 const Work = styled(User)`

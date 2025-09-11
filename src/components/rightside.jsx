@@ -1,6 +1,7 @@
 import styled from "styled-components";
+import { connect } from "react-redux";
 
-const Rightside = () => {
+const Rightside = (props) => {
     return (
         <Container>
             <PuzzleCard>
@@ -23,7 +24,7 @@ const Rightside = () => {
                 </FeedHeader>
                 
                 <FeedItem>
-                    <CompanyLogo src="/images/feed-icon.svg" alt="OpenAI" />
+                    <CompanyLogo src="/images/openai.svg" alt="OpenAI" />
                     <CompanyInfo>
                         <CompanyName>OpenAI</CompanyName>
                         <CompanyDesc>Company • Research Services</CompanyDesc>
@@ -32,16 +33,16 @@ const Rightside = () => {
                 </FeedItem>
 
                 <FeedItem>
-                    <ProfileImg src="/images/user.svg" alt="Kingsley Orji" />
+                    <ProfileImg src="/images/google.svg" alt="Google" />
                     <CompanyInfo>
-                        <CompanyName>Kingsley Orji</CompanyName>
-                        <CompanyDesc>Senior Product Designer</CompanyDesc>
+                        <CompanyName>Google</CompanyName>
+                        <CompanyDesc>Company • Research Services</CompanyDesc>
                     </CompanyInfo>
                     <FollowBtn>Follow</FollowBtn>
                 </FeedItem>
 
                 <FeedItem>
-                    <CompanyLogo src="/images/feed-icon.svg" alt="Meta" />
+                    <CompanyLogo src="/images/meta.svg" alt="Meta" />
                     <CompanyInfo>
                         <CompanyName>Meta</CompanyName>
                         <CompanyDesc>Company • Software Development</CompanyDesc>
@@ -57,9 +58,9 @@ const Rightside = () => {
 
             <PremiumAdCard>
                 <AdLabel>Ad</AdLabel>
-                <AdTitle>Ayobade, unlock your full potential with LinkedIn Premium</AdTitle>
+                <AdTitle>Unlock your full potential with LinkedIn Premium</AdTitle>
                 <AdProfile>
-                    <AdProfileImg src="/images/user.svg" alt="Profile" />
+                    <AdProfileImg  src={props.user && props.user.photoURL && props.user.photoURL !== 'null' ? props.user.photoURL : "/images/user.svg"} alt="Profile" onError={(e)=>{e.currentTarget.src="/images/user.svg"}} />
                     <PremiumBadge>Premium</PremiumBadge>
                 </AdProfile>
                 <AdBenefit>See who's viewed your profile in the last 365 days</AdBenefit>
@@ -437,4 +438,10 @@ const Copyright = styled.div`
     color: rgba(0, 0, 0, 0.6);
 `;
 
-export default Rightside;
+const mapStateToProps = (state) => {
+    return {
+        user: state.userState.user,
+    };
+};
+
+export default connect(mapStateToProps)(Rightside);

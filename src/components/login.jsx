@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { Navigate } from "react-router-dom";
 import { auth, provider } from "../firebase";
+import { connect } from "react-redux";
 
 const Login = (props) => {
   const handleGoogleSignIn = async () => {
@@ -240,19 +241,11 @@ const HeroImage = styled.img`
 `;
 
 
-const mapStateToProps = (state) => {
-  return {
-    user: state.userState.user,
-  };
-};
+const mapStateToProps = (state) => ({
+  user: state.userState && state.userState.user
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    signIn: () => dispatch(signInAPI()),
-  };
-};
-
-export default Login;
+export default connect(mapStateToProps)(Login);
 
 
 

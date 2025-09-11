@@ -6,7 +6,7 @@ import { fetchPostsAPI, updatePostReactionAPI } from "../actions";
 
 const Main = (props) => {
     const [isSortOpen, setIsSortOpen] = useState(false);
-    const [selectedSort, setSelectedSort] = useState("Top");
+    const [selectedSort, setSelectedSort] = useState("Recent");
     const [showHiringCard, setShowHiringCard] = useState(true);
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
 
@@ -43,7 +43,7 @@ const Main = (props) => {
     };
 
     useEffect(() => {
-        if (props.fetchPosts) props.fetchPosts();
+        if (props.fetchPosts) props.fetchPosts("Recent");
     }, [props.fetchPosts]);
 
 

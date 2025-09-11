@@ -1,10 +1,23 @@
 import styled from "styled-components";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { auth } from "../firebase";
 import { connect } from "react-redux";
 
 const Header = (props) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const userRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!isDropdownOpen) return;
+      const inUser = userRef.current && userRef.current.contains(e.target);
+      const inDropdown = dropdownRef.current && dropdownRef.current.contains(e.target);
+      if (!inUser && !inDropdown) setIsDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
   const handleSignOut = async () => {
     try {
       await auth.signOut();
@@ -60,20 +73,20 @@ const Header = (props) => {
                 </a>
             </NavList>
 
-            <NavList>
+            <Notifications>
                 <a>
                     <img src="/images/nav-notifications.svg" alt="Home" />
                     <span>Notifications</span>
                 </a>
-            </NavList>
+            </Notifications>
 
-            <User>
+            <User ref={userRef}>
               <a onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                 <img src={props.user && props.user.photoURL && props.user.photoURL !== 'null' ? props.user.photoURL : "/images/user.svg"} alt="User" onError={(e)=>{e.currentTarget.src="/images/user.svg"}} />
                 <span>Me <img className="drop" src="/images/down-icon.svg" alt="Arrow Down" /></span>
               </a>
               {isDropdownOpen && (
-                <DropdownMenu>
+                <DropdownMenu ref={dropdownRef}>
                   <UserProfile>
                     <ProfileImg src={props.user && props.user.photoURL && props.user.photoURL !== 'null' ? props.user.photoURL : "/images/user.svg"} alt="Profile" onError={(e)=>{e.currentTarget.src="/images/user.svg"}} />
                     <UserInfo>
@@ -123,28 +136,28 @@ const Header = (props) => {
 };
 
 const Container = styled.div`
-  background-color: #ffffff;
+background-color: #ffffff;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  left: 0;
-  padding: 0 24px;
-  position: fixed;
-  top: 0;
-  width: 100%;
-  z-index: 100;
+left: 0;
+padding: 0 24px;
+position: fixed;
+top: 0;
+width: 100%;
+z-index: 100;
   height: 60px;
 `;
 
 const Content = styled.div`
-  display: flex;
+display: flex;
   align-items: center;
-  margin: 0 auto;
-  min-height: 100%;
-  max-width: 1128px;
+margin: 0 auto;
+min-height: 100%;
+max-width: 1128px;
 `;
 
 const Logo = styled.span`
   margin-right: 16px;
-  font-size: 0px;
+    font-size: 0px;
 `;
 
 const Search = styled.div`
@@ -281,6 +294,7 @@ const NavList = styled.li`
 `;
 
 const User = styled(NavList)`
+  position: relative;
   a > svg {
     width: 24px;
     border-radius: 50%;
@@ -319,6 +333,12 @@ const Work = styled(User)`
   }
 `;
 
+const Notifications = styled(NavList)`
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
 const DropdownMenu = styled.div`
   position: absolute;
   top: 100%;
@@ -329,6 +349,13 @@ const DropdownMenu = styled.div`
   min-width: 280px;
   z-index: 1000;
   margin-top: 8px;
+
+  @media (max-width: 768px) {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 8px;
+  }
 `;
 
 const UserProfile = styled.div`

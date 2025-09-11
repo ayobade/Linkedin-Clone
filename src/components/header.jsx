@@ -1,8 +1,18 @@
 import styled from "styled-components";
 import { useState } from "react";
+import { auth } from "../firebase";
 
 const Header = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      setIsDropdownOpen(false);
+      window.location.href = "/";
+    } catch (e) {
+      console.error("Sign out failed", e);
+    }
+  };
     return (
     <Container>
       <Content>
@@ -92,7 +102,7 @@ const Header = () => {
                     <MenuItem>Job Posting Account</MenuItem>
                   </Section>
                   
-                  <SignOut>Sign Out</SignOut>
+                  <SignOut onClick={handleSignOut}>Sign Out</SignOut>
                 </DropdownMenu>
               )}
             </User>

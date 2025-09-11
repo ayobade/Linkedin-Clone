@@ -1,10 +1,20 @@
 import styled from "styled-components";
-import {connect} from "react-redux";
+import { Navigate } from "react-router-dom";
+import { auth, provider } from "../firebase";
 
+const Login = (props) => {
+  const handleGoogleSignIn = async () => {
+    try {
+      await auth.signInWithPopup(provider);
+      window.location.href = "/home";
+    } catch (e) {
+      alert(e.message);
+    }
+  };
 
-const Login = () => {
   return (
     <Container>
+    {props.user && <Navigate to="/home" replace />}
       <Nav>
         <a href="/">
           <img src="/images/login-logo.svg" alt="LinkedIn" />
@@ -20,7 +30,7 @@ const Login = () => {
           <Headline>Welcome to your professional community</Headline>
 
           <Buttons>
-            <GoogleButton>
+            <GoogleButton onClick={handleGoogleSignIn}>
               <img src="/images/google.svg" alt="Google" />
               Continue with Google
             </GoogleButton>
@@ -190,7 +200,6 @@ const Legal = styled.p`
   width: 408px;
   margin-top: 16px;
   font-size: 12px;
-  text-a
   line-height: 20px;
   color: rgba(0,0,0,0.6);
 
@@ -230,16 +239,20 @@ const HeroImage = styled.img`
   }
 `;
 
+
 const mapStateToProps = (state) => {
   return {
-    };
+    user: state.userState.user,
+  };
 };
 
+const mapDispatchToProps = (dispatch) => {
+  return {
+    signIn: () => dispatch(signInAPI()),
+  };
+};
 
-const mapDispatchToProps = (dispatch) => ({});
-
-
-export default connect(mapStateToProps, mapDispatchToProps)(Login);
+export default Login;
 
 
 

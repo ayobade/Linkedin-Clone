@@ -22,7 +22,7 @@ const Main = () => {
                     <HiringTitle>Hi Ayobade, are you hiring?</HiringTitle>
                     <HiringDesc>Discover free and easy ways to find a great hire, fast.</HiringDesc>
                     <HiringActions>
-                        <HiringBtn primary onClick={() => setShowHiringCard(false)}>Yes, I'm hiring</HiringBtn>
+                        <HiringBtn $primary onClick={() => setShowHiringCard(false)}>Yes, I'm hiring</HiringBtn>
                         <HiringBtn onClick={() => setShowHiringCard(false)}>No, not right now</HiringBtn>
                     </HiringActions>
                 </HiringCard>
@@ -39,19 +39,19 @@ const Main = () => {
                 </PostHeader>
                 <PostActions>
                     <ActionBtn>
-                        <StartIconWrapper bg="#2e7d32">
+                        <StartIconWrapper $bg="#2e7d32">
                             <StartIcon src="/images/video-svgrepo-com.svg" alt="Video" />
                         </StartIconWrapper>
                         <ActionText>Video</ActionText>
                     </ActionBtn>
                     <ActionBtn>
-                        <StartIconWrapper bg="#1976d2">
+                        <StartIconWrapper $bg="#1976d2">
                             <StartIcon src="/images/photo-svgrepo-com.svg" alt="Photo" />
                         </StartIconWrapper>
                         <ActionText>Photo</ActionText>
                     </ActionBtn>
                     <ActionBtn>
-                        <StartIconWrapper bg="#e86d48">
+                        <StartIconWrapper $bg="#e86d48">
                             <StartIcon src="/images/journal-svgrepo-com.svg" alt="Write article" />
                         </StartIconWrapper>
                         <ActionText>Write article</ActionText>
@@ -249,7 +249,7 @@ const StartIconWrapper = styled.span`
     align-items: center;
     justify-content: center;
     border-radius: 6px;
-    background-color: ${props => props.bg || '#e9e5df'};
+    background-color: ${props => props.$bg || '#e9e5df'};
     margin-right: 8px;
 `;
 
@@ -345,7 +345,7 @@ const HiringBtn = styled.button`
     cursor: pointer;
     border: 1px solid #0a66c2;
     
-    ${props => props.primary ? `
+    ${props => props.$primary ? `
         background-color: #0a66c2;
         color: white;
         

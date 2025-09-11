@@ -1,6 +1,6 @@
 [
     {
-      "origin": ["http://localhost:5173"],
+      "origin": ["http://localhost:5173", "https://liinkedinclone.netlify.app"],
       "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       "responseHeader": ["Content-Type", "x-goog-meta-*"],
       "maxAgeSeconds": 3600

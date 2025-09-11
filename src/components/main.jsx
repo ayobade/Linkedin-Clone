@@ -2,13 +2,14 @@ import styled from "styled-components";
 import { useState, useEffect } from "react";
 import PostModal from "./PostModal";
 import { connect } from "react-redux";
-import { fetchPostsAPI, updatePostReactionAPI } from "../actions";
+import { fetchPostsAPI, updatePostReactionAPI, deletePostAPI } from "../actions";
 
 const Main = (props) => {
     const [isSortOpen, setIsSortOpen] = useState(false);
     const [selectedSort, setSelectedSort] = useState("Recent");
     const [showHiringCard, setShowHiringCard] = useState(true);
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+    const [menuOpenId, setMenuOpenId] = useState(null);
 
     const formatTimeAgo = (ts) => {
         try {
@@ -45,6 +46,24 @@ const Main = (props) => {
     useEffect(() => {
         if (props.fetchPosts) props.fetchPosts("Recent");
     }, [props.fetchPosts]);
+
+    useEffect(() => {
+        const handleOutsideClick = (e) => {
+            if (!menuOpenId) return;
+            const menuEl = document.getElementById(`post-menu-${menuOpenId}`);
+            const triggerEl = document.getElementById(`post-menu-trigger-${menuOpenId}`);
+            const target = e.target;
+            if (menuEl && triggerEl) {
+                if (!menuEl.contains(target) && !triggerEl.contains(target)) {
+                    setMenuOpenId(null);
+                }
+            } else {
+                setMenuOpenId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleOutsideClick);
+        return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }, [menuOpenId]);
 
 
     return (
@@ -154,8 +173,14 @@ const Main = (props) => {
                             </AuthorDetails>
                         </PostAuthorInfo>
                         <PostOptions>
-                            <MoreBtn>⋯</MoreBtn>
-                            <CloseBtn>×</CloseBtn>
+                            {(props.user && post.user && props.user.uid === post.user.uid) && (
+                                <MoreBtn id={`post-menu-trigger-${post.id}`} onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === post.id ? null : post.id); }}>⋯</MoreBtn>
+                            )}
+                            {menuOpenId === post.id && (props.user && post.user && props.user.uid === post.user.uid) && (
+                                <PostMenu id={`post-menu-${post.id}`} onClick={(e) => e.stopPropagation()}>
+                                    <MenuItemButton onClick={() => props.deletePost(post.id, props.user, selectedSort)}>Delete</MenuItemButton>
+                                </PostMenu>
+                            )}
                         </PostOptions>
                     </PostCardHeader>
 
@@ -220,10 +245,7 @@ const Main = (props) => {
                             </PostMeta>
                         </AuthorDetails>
                     </PostAuthorInfo>
-                    <PostOptions>
-                        <MoreBtn>⋯</MoreBtn>
-                        <CloseBtn>×</CloseBtn>
-                    </PostOptions>
+                    <PostOptions></PostOptions>
                 </PostCardHeader>
 
                 <PostContent>
@@ -606,6 +628,38 @@ const PostOptions = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    position: relative;
+`;
+
+const PostMenu = styled.div`
+    position: absolute;
+    top: 24px;
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 8px 0;
+    z-index: 10;
+`;
+
+const MenuItemButton = styled.button`
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+    color: rgba(0,0,0,0.8);
+
+    &:hover { background: rgba(0,0,0,0.04); }
+`;
+
+const MenuItemDisabled = styled.div`
+    padding: 10px 16px;
+    font-size: 14px;
+    color: rgba(0,0,0,0.4);
 `;
 
 const MoreBtn = styled.button`
@@ -733,6 +787,7 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => ({
     fetchPosts: (sort) => dispatch(fetchPostsAPI(sort)),
     reactToPost: (postId, reaction, user, sort) => dispatch(updatePostReactionAPI(postId, user, reaction, sort)),
+    deletePost: (postId, user, sort) => dispatch(deletePostAPI(postId, user, sort)),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

@@ -161,6 +161,32 @@ export function updatePostReactionAPI(postId, user, reaction, sort = "Recent") {
   };
 }
 
+export function deletePostAPI(postId, currentUser, sort = "Recent") {
+  return async (dispatch) => {
+    try {
+      if (!currentUser || !currentUser.uid) return;
+      const docRef = db.collection("posts").doc(postId);
+      const snap = await docRef.get();
+      if (!snap.exists) return;
+      const data = snap.data();
+      if (!data || !data.user || data.user.uid !== currentUser.uid) return;
+
+      const imageUrls = Array.isArray(data.imageUrls) ? data.imageUrls : (data.imageUrl ? [data.imageUrl] : []);
+      for (const url of imageUrls) {
+        try {
+          const ref = storage.refFromURL(url);
+          await ref.delete();
+        } catch (_) {}
+      }
+
+      await docRef.delete();
+      dispatch(fetchPostsAPI(sort));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+}
+
 
 
 export function getArticlesAPI() {

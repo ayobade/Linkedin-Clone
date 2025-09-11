@@ -8,13 +8,11 @@ const userReducer = (state = initialState, action) => {
         case SET_USER:
             return {
                 ...state,
-                user: action.User,
+                user: action.user,
             };
         default:
             return state;
     }
 };
-
-
 
 export default userReducer;
